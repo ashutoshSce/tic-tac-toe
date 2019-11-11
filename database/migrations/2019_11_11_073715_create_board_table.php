@@ -15,11 +15,12 @@ class CreateBoardTable extends Migration
     {
         Schema::create('boards', function (Blueprint $table) {
             $table->bigIncrements('id');
+            $table->unsignedTinyInteger('size');
             $table->unsignedBigInteger('player1_id')->index();
             $table->unsignedBigInteger('player2_id')->index()->nullable();
             $table->dateTime('game_start')->nullable();
             $table->dateTime('game_end')->nullable()->comment('If Null, then game is going on');
-            $table->dateTime('game_status')->nullable()->comment('1: draw, 2: won');
+            $table->unsignedTinyInteger('game_status')->nullable()->comment('1: draw, 2: won');
             $table->timestamps();
         });
     }

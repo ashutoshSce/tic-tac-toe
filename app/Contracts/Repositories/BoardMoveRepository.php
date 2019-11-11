@@ -29,4 +29,10 @@ interface BoardMoveRepository
      * @return bool
      */
     public function update(BoardMove $boardMove, User $player, $row, $col, $marker);
+
+    /**
+     * Expire All active Boards after given amount of time, If next player not turned his/her move
+     *
+     */
+    public function expire();
 }

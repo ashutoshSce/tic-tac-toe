@@ -40,7 +40,7 @@ class GameController extends Controller
 
         $user = $this->playerEntry($request->all());
 
-        return $this->game->start($user);
+        return $this->game->start($user, $request->input('size'));
     }
 
     /**
@@ -66,6 +66,7 @@ class GameController extends Controller
         return Validator::make($data, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
+            'size' => ['required', 'integer', 'min:3', 'max:'.env('MAX_BOARD_SIZE')],
         ]);
     }
 

@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Board;
-use App\BoardMove;
 use App\Contracts\Repositories\BoardMoveRepository;
 use App\Contracts\Repositories\BoardRepository;
 use App\Contracts\Services\GameService as GameServiceContract;
+use App\Events\GameExpired;
+use App\Events\GameStarted;
 use App\User;
+use Carbon\Carbon;
 
 class GameService implements GameServiceContract
 {
@@ -41,7 +43,7 @@ class GameService implements GameServiceContract
     /**
      * {@inheritdoc}
      */
-    public function start(User $player)
+    public function start(User $player, $size)
     {
         $liveBoard = $this->boards->live($player);
 
@@ -50,10 +52,10 @@ class GameService implements GameServiceContract
             return $liveBoard;
         }
 
-        $board = $this->boards->checkForEmptyBoard();
+        $board = $this->boards->checkForEmptyBoard($size);
 
         if (is_null($board)) {
-            return $this->boards->create($player);
+            return $this->boards->create($player, $size);
         }
 
         // Same user requested for player 2
@@ -63,7 +65,11 @@ class GameService implements GameServiceContract
 
         $this->boards->startGame($board, $player);
 
-        $this->boardMoves->create($board, $this->initializeMoves(), $this->initializePointers());
+        $this->boardMoves->create($board, $this->initializeMoves($size), $this->initializePointers($size));
+
+        $board = Board::find($board->id);
+
+        event(new GameStarted($board));
 
         return $board;
     }
@@ -74,63 +80,56 @@ class GameService implements GameServiceContract
     public function move(Board $board, User $player, $row, $col)
     {
         $marker = '-';
-
+        $pointers = [];
         if ($board->player1_id === $player->id) {
             $marker = '0';
+            $pointers = $board->records->player1_pointer;
         }
 
         if ($board->player2_id === $player->id) {
             $marker = 'X';
+            $pointers = $board->records->player2_pointer;
         }
 
-        $this->boardMoves->update($board->moves, $player, $row, $col, $marker);
+        $this->boardMoves->update($board->records, $player, $row, $col, $marker);
 
-        if ($this->isWon($board->moves, $player, $row, $col)) {
-            $this->boards->ends($board, 2);
-        }
-        // Handle Draw Condition
+        return $pointers;
     }
 
-    protected function isWon(BoardMove $boardMoves, User $player, $row, $col)
+    /**
+     * {@inheritdoc}
+     */
+    public function giveUp($board)
     {
+        $board->game_end = Carbon::now();
+        $board->save();
 
-        $boardSize = count($boardMoves->moves[0]);
-        $diag = $boardMoves->pointers['diag'];
-        $antiDiag = $boardMoves->pointers['antiDiag'];
-        $rows = $boardMoves->pointers['rows'];
-        $columns = $boardMoves->pointers['columns'];
-
-        $rows[$row]++;
-        $columns[$col]++;
-        if ($row === $col) {
-            $diag[$row]++;
-        }
-        if ($row + $col === $boardSize) {
-            $antiDiag[$row]++;
-        }
-
-        // Update Pointers
-        $boardMoves->pointers = [
-            'diag' => $diag,
-            'antiDiag' => $antiDiag,
-            'rows' => $rows,
-            'columns' => $columns,
-        ];
-
-        $boardMoves->save();
-
-        if ($rows[$row] === $boardSize || $columns[$col] === $boardSize || $diag[$row] === $boardSize || $antiDiag[$row] === $boardSize) {
-            return true;
-        }
-
-        return false;
+        $board->records->player1_pointer = [];
+        $board->records->player2_pointer = [];
+        $board->records->save();
     }
 
-    protected function initializeMoves()
+    /**
+     * {@inheritdoc}
+     */
+    public function expire()
     {
+        $boardMoves = $this->boardMoves->expire();
+        if (count($boardMoves) > 1) {
+            $boardMoves->load('board');
+        }
+        foreach ($boardMoves as $boardMove) {
+            $this->boards->ends($boardMove->board, 2);
+            event(new GameExpired($boardMove->board));
+        }
+    }
+
+    protected function initializeMoves($size)
+    {
+        $maxIndex = $size - 1;
         $moves = [];
-        $rowRange = range(0, 2);
-        $columnRange = range(0, 2);
+        $rowRange = range(0, $maxIndex);
+        $columnRange = range(0, $maxIndex);
         foreach ($rowRange as $row) {
             $column = [];
             foreach ($columnRange as $col) {
@@ -142,19 +141,18 @@ class GameService implements GameServiceContract
         return $moves;
     }
 
-    protected function initializePointers()
+    protected function initializePointers($size)
     {
+        $maxIndex = $size - 1;
         $pointers = [
-            'diag' => [],
-            'antiDiag' => [],
+            'diag' => 0,
+            'antiDiag' => 0,
             'rows' => [],
             'columns' => [],
         ];
-        $range = range(0, 2);
+        $range = range(0, $maxIndex);
 
         foreach ($range as $index) {
-            $pointers['diag'][$index] = 0;
-            $pointers['antiDiag'][$index] = 0;
             $pointers['rows'][$index] = 0;
             $pointers['columns'][$index] = 0;
         }

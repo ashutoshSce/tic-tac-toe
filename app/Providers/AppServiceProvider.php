@@ -41,7 +41,8 @@ class AppServiceProvider extends ServiceProvider
             'Contracts\Repositories\BoardRepository' => 'Repositories\BoardRepository',
             'Contracts\Repositories\BoardMoveRepository' => 'Repositories\BoardMoveRepository',
             'Contracts\Services\GameService' => 'Services\GameService',
-            'Contracts\Services\GameRuleService' => 'Services\GameRuleService',
+            'Contracts\Services\GameValidatorService' => 'Services\GameValidatorService',
+            'Contracts\Services\GameStrategyService' => 'Services\GameStrategyService',
         ];
 
         foreach ($services as $key => $value) {

@@ -18,7 +18,7 @@ class Board extends Model
      *
      * @var array
      */
-    protected $fillable = ['player1_id'];
+    protected $fillable = ['player1_id', 'size'];
 
     /**
      * Fields that should be treated  as Carbon Instances.
@@ -28,11 +28,37 @@ class Board extends Model
     protected $dates = ['game_start', 'game_end'];
 
     /**
+     * The attributes excluded from the model's JSON form.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'player1_id',
+        'player2_id'
+    ];
+
+    /**
      * Get the Move record associated with the Board.
      */
-    public function moves()
+    public function records()
     {
         return $this->hasOne(BoardMove::class);
+    }
+
+    /**
+     * Get the First Player Info
+     */
+    public function player1()
+    {
+        return $this->hasOne(User::class, 'id', 'player1_id');
+    }
+
+    /**
+     * Get the Second Player Info
+     */
+    public function player2()
+    {
+        return $this->hasOne(User::class, 'id', 'player2_id');
     }
 
     /**
@@ -40,5 +66,5 @@ class Board extends Model
      *
      * @var array
      */
-    protected $with = ['moves'];
+    protected $with = ['records', 'player1', 'player2'];
 }

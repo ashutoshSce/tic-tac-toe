@@ -17,7 +17,8 @@ class CreateBoardMovesTable extends Migration
             $table->bigIncrements('id');
             $table->unsignedBigInteger('board_id')->index();
             $table->json('moves');
-            $table->json('pointers');
+            $table->json('player1_pointer');
+            $table->json('player2_pointer');
             $table->unsignedBigInteger('player_id')->nullable()->comment('If Game Ends then this column decides has winner player id.');
             $table->timestamps();
         });

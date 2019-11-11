@@ -12,9 +12,9 @@ class BoardRepository implements BoardRepositoryContract
     /**
      * {@inheritdoc}
      */
-    public function create(User $player)
+    public function create(User $player, $size)
     {
-        return Board::create(['player1_id' => $player->id]);
+        return Board::create(['player1_id' => $player->id, 'size' => $size]);
     }
 
     /**
@@ -30,9 +30,9 @@ class BoardRepository implements BoardRepositoryContract
     /**
      * {@inheritdoc}
      */
-    public function checkForEmptyBoard()
+    public function checkForEmptyBoard($size)
     {
-        return Board::whereNull('player2_id')->first();
+        return Board::whereNull('player2_id')->where('size', '=', $size)->first();
     }
 
     /**
